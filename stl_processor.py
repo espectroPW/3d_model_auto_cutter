@@ -52,6 +52,10 @@ class STLProcessor:
             print(f"Model loaded: {width:.1f}×{depth:.1f}×{height:.1f} mm")
             print(f"Triangles: {len(self.mesh.faces)}, Vertices: {len(self.mesh.vertices)}")
             print(f"Watertight: {self.mesh.is_watertight}")
+            print(f"Volume: {self.mesh.volume:.2f} mm³")
+            
+            if not self.mesh.is_watertight:
+                print("WARNING: Model is not watertight - will use fallback method for splitting")
             
             return True
             
@@ -143,6 +147,8 @@ class STLProcessor:
                         except Exception as intersection_error:
                             # Fallback to vertex filtering method for non-watertight models
                             print(f"Part {part_number}: Intersection failed ({intersection_error}), trying fallback method...")
+                            print(f"Model watertight status: {self.mesh.is_watertight}")
+                            print(f"Model volume: {self.mesh.volume}")
                             
                             # Get original mesh data
                             original_vertices = self.mesh.vertices
