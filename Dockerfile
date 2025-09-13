@@ -46,11 +46,9 @@ RUN apt-get update && apt-get install -y \
     libgl1-mesa-dev \
     libx11-dev \
     libxext-dev \
-    libxrender-dev \
     libxi-dev \
     libxrandr-dev \
     libxss-dev \
-    libgconf-2-4 \
     libxtst6 \
     libxrandr2 \
     libasound2 \
@@ -58,7 +56,7 @@ RUN apt-get update && apt-get install -y \
     libatk1.0-0 \
     libcairo-gobject2 \
     libgtk-3-0 \
-    libgdk-pixbuf2.0-0 \
+    libgdk-pixbuf-2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
