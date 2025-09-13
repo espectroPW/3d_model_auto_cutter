@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     zip \
     unzip \
+    libpython3.9 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
@@ -39,6 +40,8 @@ RUN docker-php-ext-install zip
 # Copy Python environment from previous stage
 COPY --from=python-base /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
 COPY --from=python-base /usr/local/bin /usr/local/bin
+COPY --from=python-base /usr/local/lib/libpython3.9.so.1.0 /usr/local/lib/
+COPY --from=python-base /usr/local/lib/python3.9 /usr/local/lib/python3.9
 
 # Set up Apache
 RUN a2enmod rewrite
