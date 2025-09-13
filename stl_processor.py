@@ -116,34 +116,80 @@ class STLProcessor:
                     print(f"Processing part {part_number}: bounds ({x_min:.1f}, {y_min:.1f}, {z_min:.1f}) to ({x_max:.1f}, {y_max:.1f}, {z_max:.1f})")
                     
                     try:
-                        # Force intersection method for better results
-                        print(f"Part {part_number}: Using intersection method...")
-                        
-                        # Create bounding box for this part
-                        bounds_box = trimesh.creation.box(
-                            extents=(x_max - x_min, y_max - y_min, z_max - z_min),
-                            transform=trimesh.transformations.translation_matrix(
-                                [(x_max + x_min) / 2, (y_max + y_min) / 2, (z_max + z_min) / 2]
+                        # Try intersection method first (for watertight models)
+                        try:
+                            # Create bounding box for this part
+                            bounds_box = trimesh.creation.box(
+                                extents=(x_max - x_min, y_max - y_min, z_max - z_min),
+                                transform=trimesh.transformations.translation_matrix(
+                                    [(x_max + x_min) / 2, (y_max + y_min) / 2, (z_max + z_min) / 2]
+                                )
                             )
-                        )
-                        
-                        # Intersect the mesh with the bounding box
-                        section = self.mesh.intersection(bounds_box)
-                        
-                        # Check if the section contains geometry
-                        if section.is_empty:
-                            print(f"Part {part_number}: No geometry in bounds - skipped")
-                            continue
-                        
-                        # Export the part
-                        output_filename = f"part_{part_number:02d}.stl"
-                        output_filepath = os.path.join(output_dir, output_filename)
-                        
-                        # Use trimesh export
-                        section.export(output_filepath)
-                        parts_created += 1
-                        
-                        print(f"Part {part_number}: SUCCESS - {len(section.faces)} triangles, {len(section.vertices)} vertices → {output_filename}")
+                            
+                            # Intersect the mesh with the bounding box
+                            section = self.mesh.intersection(bounds_box)
+                            
+                            # Check if the section contains geometry
+                            if section.is_empty:
+                                print(f"Part {part_number}: No geometry in bounds - skipped")
+                                continue
+                            
+                            # Export the part
+                            output_filename = f"part_{part_number:02d}.stl"
+                            output_filepath = os.path.join(output_dir, output_filename)
+                            
+                            # Use trimesh export
+                            section.export(output_filepath)
+                            parts_created += 1
+                            
+                            print(f"Part {part_number}: SUCCESS - {len(section.faces)} triangles, {len(section.vertices)} vertices → {output_filename}")
+                            
+                        except Exception as intersection_error:
+                            # Fallback to vertex filtering method for non-watertight models
+                            print(f"Part {part_number}: Intersection failed ({intersection_error}), trying fallback method...")
+                            
+                            # Get original mesh data
+                            original_vertices = self.mesh.vertices
+                            original_faces = self.mesh.faces
+                            
+                            # Find faces that have at least one vertex in the bounds
+                            valid_faces = []
+                            
+                            for face_idx, face in enumerate(original_faces):
+                                face_vertices = original_vertices[face]
+                                
+                                # Check if any vertex of this face is within bounds
+                                for vertex in face_vertices:
+                                    vx, vy, vz = vertex
+                                    if (x_min <= vx <= x_max and 
+                                        y_min <= vy <= y_max and 
+                                        z_min <= vz <= z_max):
+                                        valid_faces.append(face_idx)
+                                        break
+                            
+                            if not valid_faces:
+                                print(f"Part {part_number}: No faces found in bounds - skipped")
+                                continue
+                            
+                            # Extract valid faces and their vertices
+                            part_faces = original_faces[valid_faces]
+                            
+                            # Get all unique vertices used by these faces
+                            unique_vertex_indices = np.unique(part_faces.flatten())
+                            part_vertices = original_vertices[unique_vertex_indices]
+                            
+                            # Reindex faces to use new vertex indices
+                            vertex_map = {old_idx: new_idx for new_idx, old_idx in enumerate(unique_vertex_indices)}
+                            reindexed_faces = np.array([[vertex_map[vertex] for vertex in face] for face in part_faces])
+                            
+                            # Export the part using simple STL writer
+                            output_filename = f"part_{part_number:02d}.stl"
+                            output_filepath = os.path.join(output_dir, output_filename)
+                            
+                            self.write_stl_simple(output_filepath, part_vertices, reindexed_faces)
+                            parts_created += 1
+                            
+                            print(f"Part {part_number}: SUCCESS (fallback) - {len(reindexed_faces)} triangles, {len(part_vertices)} vertices → {output_filename}")
                         
                     except Exception as part_error:
                         print(f"Error processing part {part_number}: {part_error}")
