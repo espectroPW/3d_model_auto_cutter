@@ -29,6 +29,8 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-dev \
+    python3-setuptools \
+    python3-wheel \
     libzip-dev \
     zip \
     unzip \
@@ -47,9 +49,9 @@ RUN docker-php-ext-install zip
 
 # Install Python packages using system Python
 RUN pip3 install --no-cache-dir --break-system-packages \
-    trimesh==3.23.5 \
-    numpy==1.24.3 \
-    matplotlib==3.7.1
+    trimesh \
+    numpy \
+    matplotlib
 
 # Set up Apache
 RUN a2enmod rewrite
