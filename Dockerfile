@@ -24,24 +24,32 @@ RUN pip install --no-cache-dir \
 # Final stage with PHP
 FROM php:8.1-apache
 
-# Install system dependencies for PHP
+# Install system dependencies for PHP and Python
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
+    python3-dev \
     libzip-dev \
     zip \
     unzip \
-    libpython3.9 \
+    gcc \
+    g++ \
+    libgl1-mesa-dri \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
 RUN docker-php-ext-install zip
 
-# Copy Python environment from previous stage
-COPY --from=python-base /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
-COPY --from=python-base /usr/local/bin /usr/local/bin
-COPY --from=python-base /usr/local/lib/libpython3.9.so.1.0 /usr/local/lib/
-COPY --from=python-base /usr/local/lib/python3.9 /usr/local/lib/python3.9
+# Install Python packages using system Python
+RUN pip3 install --no-cache-dir \
+    trimesh==3.23.5 \
+    numpy==1.24.3 \
+    matplotlib==3.7.1
 
 # Set up Apache
 RUN a2enmod rewrite

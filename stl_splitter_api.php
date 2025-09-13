@@ -64,7 +64,7 @@ class STLSplitter {
             // Use Python script to process STL
             $pythonScript = __DIR__ . '/stl_processor.py';
             $command = sprintf(
-                'python "%s" "%s" %f %f %f %s 2>&1',
+                'python3 "%s" "%s" %f %f %f %s 2>&1',
                 $pythonScript,
                 $stlPath,
                 $maxX,
