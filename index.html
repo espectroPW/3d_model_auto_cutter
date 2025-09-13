@@ -581,26 +581,42 @@
                     this.currentModel.castShadow = true;
                     this.currentModel.receiveShadow = true;
 
-                    // Center the model
+                    // Compute bounding box to get actual model bounds
                     geometry.computeBoundingBox();
-                    const center = geometry.boundingBox.getCenter(new THREE.Vector3());
-                    this.currentModel.position.sub(center);
+                    const bounds = geometry.boundingBox;
+                    const size = bounds.getSize(new THREE.Vector3());
+                    const center = bounds.getCenter(new THREE.Vector3());
+                    
+                    // Store original bounds (in mm) - these match the actual cutting coordinates
+                    this.modelBounds = {
+                        minX: bounds.min.x,
+                        maxX: bounds.max.x,
+                        minY: bounds.min.y,
+                        maxY: bounds.max.y,
+                        minZ: bounds.min.z,
+                        maxZ: bounds.max.z,
+                        width: size.x,
+                        height: size.y,
+                        depth: size.z
+                    };
 
-                    // Scale to fit in view
-                    const size = geometry.boundingBox.getSize(new THREE.Vector3());
+                    // Scale to fit in view (keep aspect ratio)
                     const maxDim = Math.max(size.x, size.y, size.z);
                     const scale = 100 / maxDim;
                     this.currentModel.scale.setScalar(scale);
 
+                    // Position model so it matches actual cutting coordinates
+                    // Don't center it - keep it in original position
+                    this.currentModel.position.set(0, 0, 0);
+
                     this.scene.add(this.currentModel);
 
-                    // Update camera position
+                    // Update camera position to show the model properly
                     this.camera.position.set(maxDim * 1.5, maxDim * 1.5, maxDim * 1.5);
-                    this.controls.target.set(0, 0, 0);
+                    this.controls.target.set(center.x * scale, center.y * scale, center.z * scale);
                     this.controls.update();
 
-                    // Store original geometry for split preview
-                    this.originalGeometry = geometry;
+                    // Store scaling info for split preview
                     this.modelScale = scale;
                     this.modelCenter = center;
 
@@ -614,7 +630,7 @@
                 this.splitBoxes.forEach(box => this.scene.remove(box));
                 this.splitBoxes = [];
 
-                if (!this.originalGeometry || !splitConfig) return;
+                if (!this.modelBounds || !splitConfig) return;
 
                 const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3, 0x54a0ff, 0x5f27cd];
                 
@@ -622,8 +638,8 @@
                     const { bounds, part_number } = part;
                     const [x_min, x_max, y_min, y_max, z_min, z_max] = bounds;
 
-                    // Create wireframe box
-                    const geometry = new THREE.BoxGeometry(
+                    // Create wireframe box using actual model coordinates
+                    const boxGeometry = new THREE.BoxGeometry(
                         (x_max - x_min) * this.modelScale,
                         (z_max - z_min) * this.modelScale,
                         (y_max - y_min) * this.modelScale
@@ -636,13 +652,13 @@
                         opacity: 0.8
                     });
 
-                    const box = new THREE.Mesh(geometry, material);
+                    const box = new THREE.Mesh(boxGeometry, material);
                     
-                    // Position the box
+                    // Position the box using actual model coordinates (scaled)
                     box.position.set(
-                        ((x_min + x_max) / 2 - this.modelCenter.x) * this.modelScale,
-                        ((z_min + z_max) / 2 - this.modelCenter.z) * this.modelScale,
-                        ((y_min + y_max) / 2 - this.modelCenter.y) * this.modelScale
+                        ((x_min + x_max) / 2) * this.modelScale,
+                        ((z_min + z_max) / 2) * this.modelScale,
+                        ((y_min + y_max) / 2) * this.modelScale
                     );
 
                     this.scene.add(box);
@@ -812,23 +828,34 @@
             }
 
             generateSplitConfig(modelX, modelY, modelZ, partsX, partsY, partsZ) {
-                // Calculate model bounds (assuming centered at origin)
-                const minX = -modelX / 2;
-                const maxX = modelX / 2;
-                const minY = -modelY / 2;
-                const maxY = modelY / 2;
-                const minZ = 0;
-                const maxZ = modelZ;
+                // Use actual model bounds from 3D viewer (these match the real cutting coordinates)
+                if (!this.viewer.modelBounds) {
+                    // Fallback to centered bounds if 3D viewer not ready
+                    const minX = -modelX / 2;
+                    const maxX = modelX / 2;
+                    const minY = -modelY / 2;
+                    const maxY = modelY / 2;
+                    const minZ = 0;
+                    const maxZ = modelZ;
+                    
+                    this.generateSplitConfigFromBounds(minX, maxX, minY, maxY, minZ, maxZ, partsX, partsY);
+                } else {
+                    // Use actual model bounds from 3D viewer
+                    const bounds = this.viewer.modelBounds;
+                    this.generateSplitConfigFromBounds(bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, bounds.minZ, bounds.maxZ, partsX, partsY);
+                }
+            }
 
+            generateSplitConfigFromBounds(minX, maxX, minY, maxY, minZ, maxZ, partsX, partsY) {
                 this.splitConfig = [];
                 let partNumber = 1;
 
                 for (let i = 0; i < partsX; i++) {
                     for (let j = 0; j < partsY; j++) {
-                        const xMin = minX + (i * modelX / partsX);
-                        const xMax = minX + ((i + 1) * modelX / partsX);
-                        const yMin = minY + (j * modelY / partsY);
-                        const yMax = minY + ((j + 1) * modelY / partsY);
+                        const xMin = minX + (i * (maxX - minX) / partsX);
+                        const xMax = minX + ((i + 1) * (maxX - minX) / partsX);
+                        const yMin = minY + (j * (maxY - minY) / partsY);
+                        const yMax = minY + ((j + 1) * (maxY - minY) / partsY);
 
                         this.splitConfig.push({
                             bounds: [xMin, xMax, yMin, yMax, minZ, maxZ],
