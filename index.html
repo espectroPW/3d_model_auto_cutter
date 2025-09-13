@@ -445,6 +445,10 @@
                         </div>
                         <div class="status" id="status">Ready</div>
                     </div>
+
+                    <!-- Success message and download button -->
+                    <div id="successMessage" class="success" style="display: none;"></div>
+                    <a href="#" id="downloadBtn" class="download-btn" style="display: none;">📥 Download Split Parts</a>
                 </form>
             </div>
 
@@ -472,9 +476,7 @@
                         <p id="splitSize">Part size: -</p>
                     </div>
                     <div id="errorMessage" class="error" style="display: none;"></div>
-                    <div id="successMessage" class="success" style="display: none;"></div>
                     <div id="loadingSpinner" class="loading-spinner"></div>
-                    <a href="#" id="downloadBtn" class="download-btn">📥 Download Split Parts</a>
                     
                     <div class="feature-list">
                         <h4>🚀 Web Features</h4>
@@ -992,7 +994,7 @@
                 const url = URL.createObjectURL(blob);
                 downloadBtn.href = url;
                 downloadBtn.download = result.filename;
-                downloadBtn.style.display = 'inline-block';
+                downloadBtn.style.display = 'block';
             }
 
             showError(message) {
