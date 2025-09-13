@@ -1,10 +1,60 @@
-# STL 3D Model Splitter v2.0
+# 🔧 STL 3D Model Splitter
 
-Professional 3D model splitting application for 3D printing. Automatically cuts large STL models into smaller parts that fit within your 3D printer's build volume.
+> **Professional 3D model splitting application for 3D printing**
 
-![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
-![GUI](https://img.shields.io/badge/GUI-Tkinter-orange.svg)
+Automatically cuts large STL models into smaller parts that fit within your 3D printer's build volume. Available as both **desktop application** and **web service**.
+
+[![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)](https://python.org)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://docker.com)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![GUI](https://img.shields.io/badge/GUI-Tkinter-orange.svg)](https://docs.python.org/3/library/tkinter.html)
+[![Web](https://img.shields.io/badge/Web-PHP%20%2B%20JS-777BB4.svg)](https://php.net)
+
+## 📸 Demo
+
+### Desktop Application
+- **Interactive 3D Preview** with real-time split visualization
+- **Animated Cutting Process** with part highlighting
+- **Progress Tracking** with detailed status updates
+
+### Web Application
+- **Upload & Process** STL files directly in browser
+- **Download ZIP** with all split parts
+- **Responsive Design** works on any device
+
+## ⚡ Quick Start
+
+### 🌐 Web Version (Recommended)
+```bash
+git clone https://github.com/yourusername/3d-model-auto-cutter.git
+cd 3d-model-auto-cutter
+docker-compose up --build -d
+# Open http://localhost:8080
+```
+
+### 🖥️ Desktop Version
+```bash
+git clone https://github.com/yourusername/3d-model-auto-cutter.git
+cd 3d-model-auto-cutter
+pip install trimesh numpy matplotlib
+python cutter.py
+```
+
+## 🛠️ Technologies
+
+### Desktop Application
+- **Python 3.7+** - Core language
+- **Tkinter** - GUI framework
+- **Trimesh** - 3D mesh processing
+- **NumPy** - Numerical computations
+- **Matplotlib** - 3D visualization
+
+### Web Application
+- **PHP 8.1** - Backend API
+- **JavaScript** - Frontend interface
+- **Docker** - Containerization
+- **Apache** - Web server
+- **Python** - Processing engine
 
 ## 🚀 Features
 
@@ -43,61 +93,22 @@ Professional 3D model splitting application for 3D printing. Automatically cuts 
   pip install trimesh numpy matplotlib tkinter
   ```
 
-## 🛠️ Installation
+## 🔧 Configuration
 
-### 🖥️ Desktop Application
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/yourusername/3d-model-auto-cutter.git
-   cd 3d-model-auto-cutter
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   pip install trimesh numpy matplotlib
-   ```
-   > Note: `tkinter` is included with Python by default
-
-3. **Run the application:**
-   ```bash
-   python cutter.py
-   ```
-
-### 🌐 Web Application (Docker)
-
-**Quick Start:**
-```bash
-# Clone repository
-git clone https://github.com/yourusername/3d-model-auto-cutter.git
-cd 3d-model-auto-cutter
-
-# Build and run with Docker
-docker-compose up --build -d
-
-# Access at http://localhost:8080
-```
-
-**Change Port:**
-Edit `docker-compose.yml` and change the port mapping:
+### Port Configuration (Web Version)
+Edit `docker-compose.yml` to change the port:
 ```yaml
 ports:
   - "3000:80"  # Change 8080 to your preferred port
 ```
 
-**Popular port options:**
-- `"80:80"` - Standard HTTP
-- `"3000:80"` - Development port
-- `"5000:80"` - Alternative dev port
-- `"8000:80"` - Django-style port
+**Popular ports:** `80`, `3000`, `5000`, `8000`
 
-**After changing port:**
+After changing port:
 ```bash
 docker-compose down
 docker-compose up --build -d
 ```
-
-**Access:** http://localhost:[YOUR_PORT]
 
 ## 🎮 How to Use
 
@@ -255,14 +266,11 @@ Animation: 0.12s total (12 parts × 0.01s)
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-### Development Setup
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 📄 License
 
@@ -270,17 +278,22 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- **Trimesh Library**: For robust 3D mesh processing
-- **Matplotlib**: For 3D visualization capabilities
-- **Tkinter**: For cross-platform GUI framework
+- **[Trimesh](https://github.com/mikedh/trimesh)** - Robust 3D mesh processing
+- **[Matplotlib](https://matplotlib.org/)** - 3D visualization
+- **[Docker](https://docker.com/)** - Containerization platform
 
 ## 📞 Support
 
-If you encounter any issues or have questions:
-1. Check the troubleshooting section above
-2. Search existing GitHub issues
-3. Create a new issue with detailed description
+- 🐛 **Bug Reports**: [Create an issue](https://github.com/yourusername/3d-model-auto-cutter/issues)
+- 💡 **Feature Requests**: [Start a discussion](https://github.com/yourusername/3d-model-auto-cutter/discussions)
+- 📖 **Documentation**: Check the troubleshooting section above
 
 ---
 
+<div align="center">
+
 **Made with ❤️ for the 3D printing community**
+
+[⭐ Star this repo](https://github.com/yourusername/3d-model-auto-cutter) • [🐛 Report Bug](https://github.com/yourusername/3d-model-auto-cutter/issues) • [💡 Request Feature](https://github.com/yourusername/3d-model-auto-cutter/discussions)
+
+</div>
