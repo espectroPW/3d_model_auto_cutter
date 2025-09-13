@@ -63,17 +63,14 @@ RUN apt-get update && apt-get install -y \
 RUN docker-php-ext-install zip
 
 # Install Python packages using system Python
-RUN pip3 install --no-cache-dir --break-system-packages \
+RUN pip3 install --no-cache-dir --break-system-packages --only-binary=all \
     trimesh \
     numpy \
     matplotlib \
     scipy \
     shapely \
-    pyglet \
     pillow \
-    networkx \
-    rtree \
-    pyembree
+    networkx
 
 # Set up Apache
 RUN a2enmod rewrite
