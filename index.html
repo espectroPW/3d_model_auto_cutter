@@ -728,6 +728,10 @@
                 ['maxX', 'maxY', 'maxZ'].forEach(id => {
                     document.getElementById(id).addEventListener('input', () => {
                         this.updateSplitPreview();
+                        // Auto-show split preview if model is loaded and needs splitting
+                        if (this.modelDimensions && this.splitConfig) {
+                            this.showSplitPreview();
+                        }
                     });
                 });
 
@@ -834,6 +838,9 @@
                     
                     // Show split preview buttons
                     document.getElementById('showSplitBtn').style.display = 'inline-block';
+                    
+                    // Auto-show split preview
+                    this.showSplitPreview();
                 } else {
                     document.getElementById('splitInfo').style.display = 'none';
                     document.getElementById('showSplitBtn').style.display = 'none';
