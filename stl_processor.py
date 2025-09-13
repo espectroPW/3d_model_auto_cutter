@@ -23,6 +23,7 @@ class STLProcessor:
     def __init__(self):
         self.mesh = None
         self.model_bounds = None
+        self.force_fallback = False
         
     def load_stl(self, filepath, flip_model=False):
         """Load STL file and optionally flip it"""
@@ -72,11 +73,21 @@ class STLProcessor:
                 model_intersection = self.mesh.intersection(model_box)
                 print(f"Model intersection test: SUCCESS - {len(model_intersection.faces)} faces")
                 
+                # Test if intersection creates watertight results
+                if hasattr(test_intersection, 'is_watertight'):
+                    print(f"Test intersection watertight: {test_intersection.is_watertight}")
+                if hasattr(model_intersection, 'is_watertight'):
+                    print(f"Model intersection watertight: {model_intersection.is_watertight}")
+                
             except Exception as e:
                 print(f"Trimesh intersection test: FAILED - {e}")
                 print(f"Error type: {type(e).__name__}")
                 import traceback
                 print(f"Traceback: {traceback.format_exc()}")
+                
+                # If intersection fails, force fallback method
+                print("WARNING: Intersection method not available - will use fallback method only")
+                self.force_fallback = True
             
             if not self.mesh.is_watertight:
                 print("WARNING: Model is not watertight - will use fallback method for splitting")
@@ -142,46 +153,100 @@ class STLProcessor:
                     try:
                         print(f"Part {part_number}: Processing bounds ({x_min:.1f}, {y_min:.1f}, {z_min:.1f}) to ({x_max:.1f}, {y_max:.1f}, {z_max:.1f})")
                         
-                        # Try intersection method first (for watertight models)
-                        try:
-                            print(f"Part {part_number}: Trying intersection method...")
-                            
-                            # Create bounding box for this part
-                            bounds_box = trimesh.creation.box(
-                                extents=(x_max - x_min, y_max - y_min, z_max - z_min),
-                                transform=trimesh.transformations.translation_matrix(
-                                    [(x_max + x_min) / 2, (y_max + y_min) / 2, (z_max + z_min) / 2]
+                        # Try intersection method first (for watertight models) - unless forced to use fallback
+                        if not self.force_fallback:
+                            try:
+                                print(f"Part {part_number}: Trying intersection method...")
+                                
+                                # Create bounding box for this part
+                                bounds_box = trimesh.creation.box(
+                                    extents=(x_max - x_min, y_max - y_min, z_max - z_min),
+                                    transform=trimesh.transformations.translation_matrix(
+                                        [(x_max + x_min) / 2, (y_max + y_min) / 2, (z_max + z_min) / 2]
+                                    )
                                 )
-                            )
-                            
-                            print(f"Part {part_number}: Created bounding box, attempting intersection...")
-                            
-                            # Intersect the mesh with the bounding box
-                            section = self.mesh.intersection(bounds_box)
-                            
-                            print(f"Part {part_number}: Intersection completed, checking if empty...")
-                            
-                            # Check if the section contains geometry
-                            if section.is_empty:
-                                print(f"Part {part_number}: No geometry in bounds - skipped")
-                                continue
-                            
-                            print(f"Part {part_number}: Section has {len(section.faces)} faces, {len(section.vertices)} vertices")
-                            
-                            # Export the part
-                            output_filename = f"part_{part_number:02d}.stl"
-                            output_filepath = os.path.join(output_dir, output_filename)
-                            
-                            # Use trimesh export
-                            section.export(output_filepath)
-                            parts_created += 1
-                            
-                            print(f"Part {part_number}: SUCCESS (intersection) - {len(section.faces)} triangles, {len(section.vertices)} vertices → {output_filename}")
-                            
-                        except Exception as intersection_error:
-                            # Fallback to vertex filtering method for non-watertight models
-                            print(f"Part {part_number}: Intersection failed ({intersection_error}), trying fallback method...")
-                            print(f"Part {part_number}: Error type: {type(intersection_error).__name__}")
+                                
+                                print(f"Part {part_number}: Created bounding box, attempting intersection...")
+                                
+                                # Intersect the mesh with the bounding box
+                                section = self.mesh.intersection(bounds_box)
+                                
+                                print(f"Part {part_number}: Intersection completed, checking if empty...")
+                                
+                                # Check if the section contains geometry
+                                if section.is_empty:
+                                    print(f"Part {part_number}: No geometry in bounds - skipped")
+                                    continue
+                                
+                                print(f"Part {part_number}: Section has {len(section.faces)} faces, {len(section.vertices)} vertices")
+                                
+                                # Export the part
+                                output_filename = f"part_{part_number:02d}.stl"
+                                output_filepath = os.path.join(output_dir, output_filename)
+                                
+                                # Use trimesh export
+                                section.export(output_filepath)
+                                parts_created += 1
+                                
+                                print(f"Part {part_number}: SUCCESS (intersection) - {len(section.faces)} triangles, {len(section.vertices)} vertices → {output_filename}")
+                                
+                            except Exception as intersection_error:
+                                # Fallback to vertex filtering method for non-watertight models
+                                print(f"Part {part_number}: Intersection failed ({intersection_error}), trying fallback method...")
+                                print(f"Part {part_number}: Error type: {type(intersection_error).__name__}")
+                                
+                                # Get original mesh data
+                                original_vertices = self.mesh.vertices
+                                original_faces = self.mesh.faces
+                                
+                                print(f"Part {part_number}: Original mesh has {len(original_faces)} faces, {len(original_vertices)} vertices")
+                                
+                                # Find faces that have at least one vertex in the bounds
+                                valid_faces = []
+                                
+                                for face_idx, face in enumerate(original_faces):
+                                    face_vertices = original_vertices[face]
+                                    
+                                    # Check if any vertex of this face is within bounds
+                                    for vertex in face_vertices:
+                                        vx, vy, vz = vertex
+                                        if (x_min <= vx <= x_max and 
+                                            y_min <= vy <= y_max and 
+                                            z_min <= vz <= z_max):
+                                            valid_faces.append(face_idx)
+                                            break
+                                
+                                print(f"Part {part_number}: Found {len(valid_faces)} valid faces in bounds")
+                                
+                                if not valid_faces:
+                                    print(f"Part {part_number}: No faces found in bounds - skipped")
+                                    continue
+                                
+                                # Extract valid faces and their vertices
+                                part_faces = original_faces[valid_faces]
+                                
+                                # Get all unique vertices used by these faces
+                                unique_vertex_indices = np.unique(part_faces.flatten())
+                                part_vertices = original_vertices[unique_vertex_indices]
+                                
+                                # Reindex faces to use new vertex indices
+                                vertex_map = {old_idx: new_idx for new_idx, old_idx in enumerate(unique_vertex_indices)}
+                                reindexed_faces = np.array([[vertex_map[vertex] for vertex in face] for face in part_faces])
+                                
+                                print(f"Part {part_number}: Extracted {len(reindexed_faces)} faces, {len(part_vertices)} vertices")
+                                
+                                # Export the part using simple STL writer
+                                output_filename = f"part_{part_number:02d}.stl"
+                                output_filepath = os.path.join(output_dir, output_filename)
+                                
+                                self.write_stl_simple(output_filepath, part_vertices, reindexed_faces)
+                                parts_created += 1
+                                
+                                print(f"Part {part_number}: SUCCESS (fallback) - {len(reindexed_faces)} triangles, {len(part_vertices)} vertices → {output_filename}")
+                        
+                        else:
+                            # Force fallback method (intersection not available)
+                            print(f"Part {part_number}: Using fallback method (intersection not available)...")
                             
                             # Get original mesh data
                             original_vertices = self.mesh.vertices
@@ -230,7 +295,7 @@ class STLProcessor:
                             self.write_stl_simple(output_filepath, part_vertices, reindexed_faces)
                             parts_created += 1
                             
-                            print(f"Part {part_number}: SUCCESS (fallback) - {len(reindexed_faces)} triangles, {len(part_vertices)} vertices → {output_filename}")
+                            print(f"Part {part_number}: SUCCESS (forced fallback) - {len(reindexed_faces)} triangles, {len(part_vertices)} vertices → {output_filename}")
                         
                     except Exception as part_error:
                         print(f"Error processing part {part_number}: {part_error}")
