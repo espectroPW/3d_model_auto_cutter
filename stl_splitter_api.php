@@ -92,6 +92,9 @@ class STLSplitter {
                 throw new Exception('No parts were created');
             }
             
+            // Debug: Log found parts
+            error_log("Found " . count($parts) . " parts: " . implode(', ', $parts));
+            
             // Create ZIP file
             $zipPath = $this->tempDir . '/split_parts.zip';
             $zip = new ZipArchive();
@@ -102,7 +105,10 @@ class STLSplitter {
             $baseName = pathinfo($filename, PATHINFO_FILENAME);
             foreach ($parts as $part) {
                 $partName = basename($part);
-                $zip->addFile($part, $partName);
+                $partContent = file_get_contents($part);
+                if ($partContent !== false) {
+                    $zip->addFromString($partName, $partContent);
+                }
             }
             $zip->close();
             
