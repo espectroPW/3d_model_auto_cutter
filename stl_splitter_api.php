@@ -53,6 +53,50 @@ class STLSplitter {
         rmdir($dir);
     }
     
+    public function getModelInfo($stlData, $flipModel = false) {
+        try {
+            // Save uploaded STL file
+            $stlPath = $this->tempDir . '/input.stl';
+            if (!file_put_contents($stlPath, $stlData)) {
+                throw new Exception('Cannot save STL file');
+            }
+            
+            // Use Python script to get model info
+            $pythonScript = __DIR__ . '/stl_processor.py';
+            $command = sprintf(
+                'python3 "%s" info "%s" %s 2>&1',
+                $pythonScript,
+                $stlPath,
+                $flipModel ? 'true' : 'false'
+            );
+            
+            $output = shell_exec($command);
+            if ($output === null) {
+                throw new Exception('Python info command failed');
+            }
+            
+            // Parse output
+            $info = [];
+            $lines = explode("\n", trim($output));
+            foreach ($lines as $line) {
+                if (strpos($line, ':') !== false) {
+                    list($key, $value) = explode(':', $line, 2);
+                    $info[strtolower($key)] = $value;
+                }
+            }
+            
+            if (empty($info)) {
+                throw new Exception('No model info received. Output: ' . $output);
+            }
+            
+            return $info;
+            
+        } catch (Exception $e) {
+            error_log("Model info error: " . $e->getMessage());
+            throw $e;
+        }
+    }
+    
     public function processSTL($stlData, $filename, $maxX, $maxY, $maxZ, $flipModel = false) {
         try {
             // Save uploaded STL file
@@ -64,13 +108,14 @@ class STLSplitter {
             // Use Python script to process STL
             $pythonScript = __DIR__ . '/stl_processor.py';
             $command = sprintf(
-                'python3 "%s" "%s" %f %f %f %s 2>&1',
+                'python3 "%s" split "%s" %f %f %f %s "%s" 2>&1',
                 $pythonScript,
                 $stlPath,
                 $maxX,
                 $maxY,
                 $maxZ,
-                $flipModel ? 'true' : 'false'
+                $flipModel ? 'true' : 'false',
+                $this->tempDir . '/parts'
             );
             
             $output = shell_exec($command);
@@ -161,28 +206,41 @@ try {
         throw new Exception('Invalid file type. Please upload an STL file');
     }
     
-    // Get parameters
-    $maxX = floatval($_POST['max_x'] ?? 220);
-    $maxY = floatval($_POST['max_y'] ?? 220);
-    $maxZ = floatval($_POST['max_z'] ?? 250);
-    $flipModel = ($_POST['flip_model'] ?? 'false') === 'true';
-    
-    // Validate parameters
-    if ($maxX <= 0 || $maxY <= 0 || $maxZ <= 0) {
-        throw new Exception('Invalid build volume dimensions');
-    }
-    
     // Read STL file
     $stlData = file_get_contents($file['tmp_name']);
     if ($stlData === false) {
         throw new Exception('Cannot read uploaded file');
     }
     
-    // Process STL
     $splitter = new STLSplitter();
-    $result = $splitter->processSTL($stlData, $file['name'], $maxX, $maxY, $maxZ, $flipModel);
+    $action = $_POST['action'] ?? 'split';
     
-    echo json_encode($result);
+    if ($action === 'info') {
+        // Get model information
+        $flipModel = ($_POST['flip_model'] ?? 'false') === 'true';
+        $info = $splitter->getModelInfo($stlData, $flipModel);
+        
+        echo json_encode([
+            'success' => true,
+            'action' => 'info',
+            'data' => $info
+        ]);
+        
+    } else {
+        // Split model
+        $maxX = floatval($_POST['max_x'] ?? 220);
+        $maxY = floatval($_POST['max_y'] ?? 220);
+        $maxZ = floatval($_POST['max_z'] ?? 250);
+        $flipModel = ($_POST['flip_model'] ?? 'false') === 'true';
+        
+        // Validate parameters
+        if ($maxX <= 0 || $maxY <= 0 || $maxZ <= 0) {
+            throw new Exception('Invalid build volume dimensions');
+        }
+        
+        $result = $splitter->processSTL($stlData, $file['name'], $maxX, $maxY, $maxZ, $flipModel);
+        echo json_encode($result);
+    }
     
 } catch (Exception $e) {
     http_response_code(400);

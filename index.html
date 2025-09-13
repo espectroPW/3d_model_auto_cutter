@@ -539,8 +539,7 @@
                 this.updateSplitPreview();
             }
 
-            analyzeFile(file) {
-                // Basic file analysis (in a real app, you'd send to server for analysis)
+            async analyzeFile(file) {
                 const sizeKB = (file.size / 1024).toFixed(1);
                 document.getElementById('modelInfo').style.display = 'block';
                 document.getElementById('modelDimensions').textContent = `File size: ${sizeKB} KB`;
@@ -548,20 +547,58 @@
                 document.getElementById('modelVertices').textContent = 'Vertices: Analyzing...';
                 document.getElementById('modelWatertight').textContent = 'Watertight: Analyzing...';
                 
-                this.updateSplitPreview();
+                try {
+                    // Send file to server for analysis
+                    const formData = new FormData();
+                    formData.append('stl_file', file);
+                    formData.append('action', 'info');
+                    formData.append('flip_model', document.getElementById('flipModel').checked);
+                    
+                    const response = await fetch('stl_splitter_api.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success && result.action === 'info') {
+                        const data = result.data;
+                        document.getElementById('modelDimensions').textContent = `Dimensions: ${data.dimensions} mm`;
+                        document.getElementById('modelTriangles').textContent = `Triangles: ${parseInt(data.triangles).toLocaleString()}`;
+                        document.getElementById('modelVertices').textContent = `Vertices: ${parseInt(data.vertices).toLocaleString()}`;
+                        document.getElementById('modelWatertight').textContent = `Watertight: ${data.watertight === 'True' ? 'Yes' : 'No'}`;
+                        
+                        // Store model dimensions for split preview
+                        this.modelDimensions = {
+                            width: parseFloat(data.width),
+                            depth: parseFloat(data.depth),
+                            height: parseFloat(data.height)
+                        };
+                        
+                        this.updateSplitPreview();
+                    } else {
+                        throw new Error(result.error || 'Failed to analyze model');
+                    }
+                } catch (error) {
+                    console.error('Analysis error:', error);
+                    document.getElementById('modelTriangles').textContent = 'Triangles: Error';
+                    document.getElementById('modelVertices').textContent = 'Vertices: Error';
+                    document.getElementById('modelWatertight').textContent = 'Watertight: Error';
+                }
             }
 
             updateSplitPreview() {
-                // This would normally be calculated based on actual model dimensions
-                // For demo purposes, we'll show estimated split info
+                if (!this.modelDimensions) {
+                    return; // No model loaded yet
+                }
+                
                 const maxX = parseFloat(document.getElementById('maxX').value);
                 const maxY = parseFloat(document.getElementById('maxY').value);
                 const maxZ = parseFloat(document.getElementById('maxZ').value);
                 
-                // Simulate model dimensions (in real app, get from server)
-                const modelX = 200; // Example model dimensions
-                const modelY = 180;
-                const modelZ = 100;
+                const modelX = this.modelDimensions.width;
+                const modelY = this.modelDimensions.depth;
+                const modelZ = this.modelDimensions.height;
                 
                 const partsX = Math.ceil(modelX / maxX);
                 const partsY = Math.ceil(modelY / maxY);

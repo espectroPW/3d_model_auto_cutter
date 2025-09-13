@@ -248,33 +248,101 @@ class STLProcessor:
                 # Write attribute bytes
                 f.write(struct.pack('<H', 0))
 
+def get_model_info(stl_file, flip_model=False):
+    """Get model information without splitting"""
+    try:
+        processor = STLProcessor()
+        if not processor.load_stl(stl_file, flip_model):
+            return None
+        
+        bounds = processor.model_bounds
+        width = bounds[1] - bounds[0]
+        depth = bounds[3] - bounds[2] 
+        height = bounds[5] - bounds[4]
+        
+        info = {
+            'triangles': len(processor.mesh.faces),
+            'vertices': len(processor.mesh.vertices),
+            'watertight': processor.mesh.is_watertight,
+            'volume': processor.mesh.volume,
+            'dimensions': f"{width:.1f}×{depth:.1f}×{height:.1f}",
+            'width': width,
+            'depth': depth,
+            'height': height
+        }
+        
+        return info
+        
+    except Exception as e:
+        print(f"Error getting model info: {e}")
+        return None
+
 def main():
-    parser = argparse.ArgumentParser(description='STL Model Splitter')
-    parser.add_argument('stl_file', help='Path to STL file')
-    parser.add_argument('max_x', type=float, help='Maximum X dimension (mm)')
-    parser.add_argument('max_y', type=float, help='Maximum Y dimension (mm)')
-    parser.add_argument('max_z', type=float, help='Maximum Z dimension (mm)')
-    parser.add_argument('flip_model', choices=['true', 'false'], help='Flip model 180° around X-axis')
-    parser.add_argument('--output-dir', default='parts', help='Output directory for parts')
-    
-    args = parser.parse_args()
-    
-    # Create processor
-    processor = STLProcessor()
-    
-    # Load STL file
-    if not processor.load_stl(args.stl_file, args.flip_model == 'true'):
+    if len(sys.argv) < 2:
+        print("Usage:")
+        print("  Info: python stl_processor.py info <stl_file> [flip_model]")
+        print("  Split: python stl_processor.py split <stl_file> <max_x> <max_y> <max_z> <flip_model> <output_dir>")
         sys.exit(1)
     
-    # Create output directory in the same directory as the STL file
-    stl_dir = os.path.dirname(args.stl_file)
-    output_dir = os.path.join(stl_dir, 'parts')
+    command = sys.argv[1]
     
-    # Split model
-    if not processor.split_model(args.max_x, args.max_y, args.max_z, output_dir):
+    if command == "info":
+        if len(sys.argv) < 3:
+            print("Usage: python stl_processor.py info <stl_file> [flip_model]")
+            sys.exit(1)
+        
+        stl_file = sys.argv[2]
+        flip_model = len(sys.argv) > 3 and sys.argv[3].lower() == 'true'
+        
+        info = get_model_info(stl_file, flip_model)
+        if info:
+            print(f"TRIANGLES:{info['triangles']}")
+            print(f"VERTICES:{info['vertices']}")
+            print(f"WATERTIGHT:{info['watertight']}")
+            print(f"VOLUME:{info['volume']:.2f}")
+            print(f"DIMENSIONS:{info['dimensions']}")
+            print(f"WIDTH:{info['width']:.1f}")
+            print(f"DEPTH:{info['depth']:.1f}")
+            print(f"HEIGHT:{info['height']:.1f}")
+        else:
+            print("ERROR:Failed to load model")
+            sys.exit(1)
+    
+    elif command == "split":
+        if len(sys.argv) != 8:
+            print("Usage: python stl_processor.py split <stl_file> <max_x> <max_y> <max_z> <flip_model> <output_dir>")
+            sys.exit(1)
+        
+        stl_file = sys.argv[2]
+        max_x = float(sys.argv[3])
+        max_y = float(sys.argv[4])
+        max_z = float(sys.argv[5])
+        flip_model = sys.argv[6].lower() == 'true'
+        output_dir = sys.argv[7]
+        
+        processor = STLProcessor()
+        
+        # Load the STL file
+        if not processor.load_stl(stl_file, flip_model):
+            print("Failed to load STL file")
+            sys.exit(1)
+        
+        # Create output directory
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Split the model
+        success = processor.split_model(max_x, max_y, max_z, output_dir)
+        
+        if success:
+            print("STL processing completed successfully")
+            sys.exit(0)
+        else:
+            print("STL processing failed")
+            sys.exit(1)
+    
+    else:
+        print("Unknown command. Use 'info' or 'split'")
         sys.exit(1)
-    
-    print("STL processing completed successfully")
 
 if __name__ == "__main__":
     main()
