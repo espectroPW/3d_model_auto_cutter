@@ -512,7 +512,7 @@
             init() {
                 // Scene
                 this.scene = new THREE.Scene();
-                this.scene.background = new THREE.Color(0xf0f0f0);
+                this.scene.background = new THREE.Color(0xffffff);
 
                 // Camera
                 this.camera = new THREE.PerspectiveCamera(75, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
@@ -539,9 +539,7 @@
                 directionalLight.castShadow = true;
                 this.scene.add(directionalLight);
 
-                // Grid
-                const gridHelper = new THREE.GridHelper(200, 20, 0x888888, 0xcccccc);
-                this.scene.add(gridHelper);
+                // No grid - cleaner look for model preview
 
                 // Start render loop
                 this.animate();
