@@ -46,7 +46,7 @@ RUN apt-get update && apt-get install -y \
 RUN docker-php-ext-install zip
 
 # Install Python packages using system Python
-RUN pip3 install --no-cache-dir \
+RUN pip3 install --no-cache-dir --break-system-packages \
     trimesh==3.23.5 \
     numpy==1.24.3 \
     matplotlib==3.7.1
