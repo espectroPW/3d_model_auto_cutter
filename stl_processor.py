@@ -54,6 +54,14 @@ class STLProcessor:
             print(f"Watertight: {self.mesh.is_watertight}")
             print(f"Volume: {self.mesh.volume:.2f} mm³")
             
+            # Test trimesh capabilities
+            try:
+                test_box = trimesh.creation.box(extents=[10, 10, 10])
+                test_intersection = self.mesh.intersection(test_box)
+                print(f"Trimesh intersection test: SUCCESS - {len(test_intersection.faces)} faces")
+            except Exception as e:
+                print(f"Trimesh intersection test: FAILED - {e}")
+            
             if not self.mesh.is_watertight:
                 print("WARNING: Model is not watertight - will use fallback method for splitting")
             
