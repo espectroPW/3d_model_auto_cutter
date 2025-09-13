@@ -70,7 +70,8 @@ RUN pip3 install --no-cache-dir --break-system-packages --only-binary=all \
     scipy \
     shapely \
     pillow \
-    networkx
+    networkx \
+    manifold3d
 
 # Set up Apache
 RUN a2enmod rewrite
