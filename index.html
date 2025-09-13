@@ -463,6 +463,13 @@
                         <p id="splitParts">Parts: -</p>
                         <p id="splitSize">Part size: -</p>
                     </div>
+                    
+                    <!-- 3D Viewer -->
+                    <div id="stlViewer" style="width: 100%; height: 400px; border: 1px solid #ddd; border-radius: 8px; background: #f8f9fa; margin: 20px 0;"></div>
+                    <div style="margin-top: 10px; text-align: center;">
+                        <button id="showSplitBtn" class="btn btn-secondary" style="display: none; margin: 5px;">Show Split Preview</button>
+                        <button id="hideSplitBtn" class="btn btn-secondary" style="display: none; margin: 5px;">Hide Split Preview</button>
+                    </div>
                     <div id="errorMessage" class="error" style="display: none;"></div>
                     <div id="successMessage" class="success" style="display: none;"></div>
                     <div id="loadingSpinner" class="loading-spinner"></div>
@@ -483,9 +490,177 @@
         </div>
     </div>
 
+    <!-- Three.js and STL Loader -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
     <script>
+        class STL3DViewer {
+            constructor(containerId) {
+                this.container = document.getElementById(containerId);
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.controls = null;
+                this.currentModel = null;
+                this.splitBoxes = [];
+                this.init();
+            }
+
+            init() {
+                // Scene
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0xf0f0f0);
+
+                // Camera
+                this.camera = new THREE.PerspectiveCamera(75, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
+                this.camera.position.set(100, 100, 100);
+
+                // Renderer
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.container.appendChild(this.renderer.domElement);
+
+                // Controls
+                this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                this.scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(50, 50, 50);
+                directionalLight.castShadow = true;
+                this.scene.add(directionalLight);
+
+                // Grid
+                const gridHelper = new THREE.GridHelper(200, 20, 0x888888, 0xcccccc);
+                this.scene.add(gridHelper);
+
+                // Start render loop
+                this.animate();
+
+                // Handle window resize
+                window.addEventListener('resize', () => this.onWindowResize());
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                this.controls.update();
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            onWindowResize() {
+                this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+            }
+
+            loadSTL(file) {
+                const loader = new THREE.STLLoader();
+                loader.load(URL.createObjectURL(file), (geometry) => {
+                    // Remove previous model
+                    if (this.currentModel) {
+                        this.scene.remove(this.currentModel);
+                    }
+
+                    // Create material
+                    const material = new THREE.MeshPhongMaterial({ 
+                        color: 0x3498db,
+                        shininess: 100,
+                        side: THREE.DoubleSide
+                    });
+
+                    // Create mesh
+                    this.currentModel = new THREE.Mesh(geometry, material);
+                    this.currentModel.castShadow = true;
+                    this.currentModel.receiveShadow = true;
+
+                    // Center the model
+                    geometry.computeBoundingBox();
+                    const center = geometry.boundingBox.getCenter(new THREE.Vector3());
+                    this.currentModel.position.sub(center);
+
+                    // Scale to fit in view
+                    const size = geometry.boundingBox.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 100 / maxDim;
+                    this.currentModel.scale.setScalar(scale);
+
+                    this.scene.add(this.currentModel);
+
+                    // Update camera position
+                    this.camera.position.set(maxDim * 1.5, maxDim * 1.5, maxDim * 1.5);
+                    this.controls.target.set(0, 0, 0);
+                    this.controls.update();
+
+                    // Store original geometry for split preview
+                    this.originalGeometry = geometry;
+                    this.modelScale = scale;
+                    this.modelCenter = center;
+
+                }, undefined, (error) => {
+                    console.error('Error loading STL:', error);
+                });
+            }
+
+            showSplitPreview(splitConfig) {
+                // Clear previous split boxes
+                this.splitBoxes.forEach(box => this.scene.remove(box));
+                this.splitBoxes = [];
+
+                if (!this.originalGeometry || !splitConfig) return;
+
+                const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3, 0x54a0ff, 0x5f27cd];
+                
+                splitConfig.forEach((part, index) => {
+                    const { bounds, part_number } = part;
+                    const [x_min, x_max, y_min, y_max, z_min, z_max] = bounds;
+
+                    // Create wireframe box
+                    const geometry = new THREE.BoxGeometry(
+                        (x_max - x_min) * this.modelScale,
+                        (z_max - z_min) * this.modelScale,
+                        (y_max - y_min) * this.modelScale
+                    );
+
+                    const material = new THREE.MeshBasicMaterial({
+                        color: colors[index % colors.length],
+                        wireframe: true,
+                        transparent: true,
+                        opacity: 0.8
+                    });
+
+                    const box = new THREE.Mesh(geometry, material);
+                    
+                    // Position the box
+                    box.position.set(
+                        ((x_min + x_max) / 2 - this.modelCenter.x) * this.modelScale,
+                        ((z_min + z_max) / 2 - this.modelCenter.z) * this.modelScale,
+                        ((y_min + y_max) / 2 - this.modelCenter.y) * this.modelScale
+                    );
+
+                    this.scene.add(box);
+                    this.splitBoxes.push(box);
+                });
+            }
+
+            clearSplitPreview() {
+                this.splitBoxes.forEach(box => this.scene.remove(box));
+                this.splitBoxes = [];
+            }
+        }
+
         class STLSplitter {
             constructor() {
+                this.viewer = new STL3DViewer('stlViewer');
+                this.currentFile = null;
+                this.splitConfig = null;
                 this.initializeEventListeners();
                 this.setPreset('220', '220', '250'); // Default to Ender 3
             }
@@ -530,6 +705,15 @@
                     e.preventDefault();
                     this.processSTL();
                 });
+
+                // Split preview buttons
+                document.getElementById('showSplitBtn').addEventListener('click', () => {
+                    this.showSplitPreview();
+                });
+
+                document.getElementById('hideSplitBtn').addEventListener('click', () => {
+                    this.hideSplitPreview();
+                });
             }
 
             setPreset(x, y, z) {
@@ -540,12 +724,16 @@
             }
 
             async analyzeFile(file) {
+                this.currentFile = file;
                 const sizeKB = (file.size / 1024).toFixed(1);
                 document.getElementById('modelInfo').style.display = 'block';
                 document.getElementById('modelDimensions').textContent = `File size: ${sizeKB} KB`;
                 document.getElementById('modelTriangles').textContent = 'Triangles: Analyzing...';
                 document.getElementById('modelVertices').textContent = 'Vertices: Analyzing...';
                 document.getElementById('modelWatertight').textContent = 'Watertight: Analyzing...';
+                
+                // Load STL into 3D viewer
+                this.viewer.loadSTL(file);
                 
                 try {
                     // Send file to server for analysis
@@ -609,14 +797,68 @@
                     document.getElementById('splitInfo').style.display = 'block';
                     document.getElementById('splitParts').textContent = `Parts: ${totalParts} (${partsX}×${partsY})`;
                     document.getElementById('splitSize').textContent = `Part size: ~${(modelX/partsX).toFixed(1)}×${(modelY/partsY).toFixed(1)}×${modelZ.toFixed(1)} mm`;
+                    
+                    // Generate split configuration for 3D preview
+                    this.generateSplitConfig(modelX, modelY, modelZ, partsX, partsY, partsZ);
+                    
+                    // Show split preview buttons
+                    document.getElementById('showSplitBtn').style.display = 'inline-block';
                 } else {
                     document.getElementById('splitInfo').style.display = 'none';
+                    document.getElementById('showSplitBtn').style.display = 'none';
+                    document.getElementById('hideSplitBtn').style.display = 'none';
+                    this.viewer.clearSplitPreview();
                 }
+            }
+
+            generateSplitConfig(modelX, modelY, modelZ, partsX, partsY, partsZ) {
+                // Calculate model bounds (assuming centered at origin)
+                const minX = -modelX / 2;
+                const maxX = modelX / 2;
+                const minY = -modelY / 2;
+                const maxY = modelY / 2;
+                const minZ = 0;
+                const maxZ = modelZ;
+
+                this.splitConfig = [];
+                let partNumber = 1;
+
+                for (let i = 0; i < partsX; i++) {
+                    for (let j = 0; j < partsY; j++) {
+                        const xMin = minX + (i * modelX / partsX);
+                        const xMax = minX + ((i + 1) * modelX / partsX);
+                        const yMin = minY + (j * modelY / partsY);
+                        const yMax = minY + ((j + 1) * modelY / partsY);
+
+                        this.splitConfig.push({
+                            bounds: [xMin, xMax, yMin, yMax, minZ, maxZ],
+                            part_number: partNumber
+                        });
+                        partNumber++;
+                    }
+                }
+            }
+
+            showSplitPreview() {
+                if (this.splitConfig) {
+                    this.viewer.showSplitPreview(this.splitConfig);
+                    document.getElementById('showSplitBtn').style.display = 'none';
+                    document.getElementById('hideSplitBtn').style.display = 'inline-block';
+                }
+            }
+
+            hideSplitPreview() {
+                this.viewer.clearSplitPreview();
+                document.getElementById('showSplitBtn').style.display = 'inline-block';
+                document.getElementById('hideSplitBtn').style.display = 'none';
             }
 
             hideModelInfo() {
                 document.getElementById('modelInfo').style.display = 'none';
                 document.getElementById('splitInfo').style.display = 'none';
+                document.getElementById('showSplitBtn').style.display = 'none';
+                document.getElementById('hideSplitBtn').style.display = 'none';
+                this.viewer.clearSplitPreview();
             }
 
             async processSTL() {
