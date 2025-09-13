@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  stl-splitter:
+    build: .
+    container_name: stl-3d-splitter
+    ports:
+      - "8080:80"
+    volumes:
+      # Optional: Mount for persistent temp files
+      - stl_temp:/tmp/stl_splitter
+    environment:
+      - PHP_UPLOAD_MAX_FILESIZE=50M
+      - PHP_POST_MAX_SIZE=50M
+      - PHP_MAX_EXECUTION_TIME=300
+      - PHP_MEMORY_LIMIT=512M
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  stl_temp:
+    driver: local

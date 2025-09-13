@@ -22,13 +22,17 @@ Professional 3D model splitting application for 3D printing. Automatically cuts 
 ### 🎯 Advanced Visualization
 - **3D Model Preview**: Interactive 3D view with rotation/zoom
 - **Split Animation**: Real-time cutting progress with part highlighting
-- **Grid Visualization**: Shows all split boundaries before cutting
+- **Grid Visualization**: Shows all split boundaries with 3D model overlay
+- **Model + Grid View**: Semi-transparent model with colored split boundaries
+- **Part Highlighting**: Bright green highlighting of current processing part
 - **Multiple Views**: Isometric, Top, and Side view options
 
 ### ⚡ Performance & UX
 - **Fast Processing**: Optimized algorithms for large models
 - **Progress Tracking**: Real-time progress bar and status updates
 - **Threaded Operations**: Non-blocking GUI during processing
+- **Loading Feedback**: Progress bar shows during model loading
+- **Fast Animation**: 0.01s per part for quick visual feedback
 - **Auto-save**: Automatically saves parts to selected directory
 
 ## 📋 Requirements
@@ -74,6 +78,7 @@ Professional 3D model splitting application for 3D printing. Automatically cuts 
 - Split preview updates automatically as you change settings
 - Shows how many parts will be created
 - Displays estimated dimensions for each part
+- Click "📐 Show Split" to see 3D model with split grid overlay
 
 ### 4. Set Output Directory
 - Click **"📁"** next to Output field
@@ -82,7 +87,9 @@ Professional 3D model splitting application for 3D printing. Automatically cuts 
 ### 5. Start Splitting
 - Click **"✂️ Split Model"** button
 - Watch the real-time animation showing each part being processed
+- See 3D model with colored split grid and highlighted current part
 - Progress bar shows completion status
+- Fast 0.01s animation per part for quick feedback
 
 ## 📊 Supported File Formats
 
@@ -106,6 +113,8 @@ Professional 3D model splitting application for 3D printing. Automatically cuts 
 - **Debounced Updates**: Prevents excessive preview recalculations
 - **Memory Efficient**: Processes models in chunks to handle large files
 - **Fast Animation**: 0.01s per part for quick visual feedback
+- **Model Subsampling**: Large models simplified for smooth visualization
+- **Thread-Safe GUI**: All updates properly synchronized with main thread
 
 ## 🎨 User Interface
 
@@ -120,6 +129,23 @@ Professional 3D model splitting application for 3D printing. Automatically cuts 
 - **🎯 3D Preview**: Interactive model visualization
 - **Controls**: Refresh, Show Split, and view options (Isometric, Top, Side)
 - **Animation**: Real-time cutting progress with part highlighting
+- **Model + Grid**: Semi-transparent model with colored split boundaries
+- **Part Labels**: P1, P2, P3... with highlighting for current part
+
+## 🎬 Animation & Visualization
+
+### Split Animation Sequence
+1. **Initial Grid**: Shows complete split configuration with 3D model overlay
+2. **Part Processing**: Each part highlighted in bright green with star (*)
+3. **Real-time Progress**: Progress bar and status updates
+4. **Fast Feedback**: 0.01s per part for quick visual response
+
+### Visual Elements
+- **Semi-transparent Model**: Light gray overlay (30% opacity)
+- **Colored Grid**: Each part has unique color (red, blue, green, etc.)
+- **Highlighted Part**: Bright lime green with thick border
+- **Part Labels**: P1, P2, P3... with star (*) for current part
+- **Bounding Box**: Black outline showing model boundaries
 
 ## 📈 Example Usage
 
@@ -128,6 +154,7 @@ Professional 3D model splitting application for 3D printing. Automatically cuts 
 Input: Large decorative vase (200×200×300 mm)
 Printer: Ender 3 (220×220×250 mm)
 Result: 8 parts automatically created
+Animation: 0.08s total (8 parts × 0.01s)
 ```
 
 ### Complex Geometry
@@ -135,6 +162,7 @@ Result: 8 parts automatically created
 Input: Mechanical part with overhangs
 Printer: Prusa i3 (250×210×210 mm)
 Result: 12 parts with proper support considerations
+Animation: 0.12s total (12 parts × 0.01s)
 ```
 
 ## 🐛 Troubleshooting
@@ -150,6 +178,12 @@ Result: 12 parts with proper support considerations
 - Ensure STL file is not corrupted
 - Check file path doesn't contain special characters
 - Try with a different STL file
+- Progress bar should show "Loading model..." during load
+
+**Animation Not Working**
+- Ensure model is loaded before splitting
+- Check that split preview shows parts
+- Try clicking "📐 Show Split" to test visualization
 
 **Slow Performance**
 - Large models (>10k triangles) may take longer
@@ -160,6 +194,8 @@ Result: 12 parts with proper support considerations
 - Use binary STL files for faster loading
 - Ensure models are properly oriented before splitting
 - Close unnecessary applications during processing
+- Large models are automatically subsampled for smooth visualization
+- Animation speed is optimized at 0.01s per part
 
 ## 🔄 Version History
 
@@ -170,6 +206,10 @@ Result: 12 parts with proper support considerations
 - ✅ Optimized UI with compact layout
 - ✅ Fast animation system (0.01s per part)
 - ✅ Progress tracking and status updates
+- ✅ Model + Grid visualization with semi-transparent overlay
+- ✅ Part highlighting with bright green current part
+- ✅ Thread-safe GUI updates for loading feedback
+- ✅ Model subsampling for smooth performance
 
 ### v1.0
 - Basic STL splitting functionality

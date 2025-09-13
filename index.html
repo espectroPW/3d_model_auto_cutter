@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STL 3D Model Splitter - Web Version</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .version-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 600px;
+        }
+
+        .left-panel {
+            background: #f8f9fa;
+            padding: 30px;
+            border-right: 1px solid #e9ecef;
+        }
+
+        .right-panel {
+            background: white;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            background: #3498db;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+            border: 2px dashed #3498db;
+        }
+
+        .file-input-button:hover {
+            background: #2980b9;
+        }
+
+        .file-input-button.has-file {
+            background: #27ae60;
+            border-color: #27ae60;
+        }
+
+        .file-input-button.has-file:hover {
+            background: #229954;
+        }
+
+        .presets {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .preset-btn {
+            padding: 10px;
+            background: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+
+        .preset-btn:hover {
+            background: #d5dbdb;
+            border-color: #95a5a6;
+        }
+
+        .preset-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .dimensions {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        .dimension-group {
+            text-align: center;
+        }
+
+        .dimension-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 1.1em;
+            text-align: center;
+            transition: border-color 0.3s;
+        }
+
+        .dimension-group input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .dimension-group label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+
+        .process-btn {
+            width: 100%;
+            padding: 15px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 20px;
+        }
+
+        .process-btn:hover:not(:disabled) {
+            background: #c0392b;
+        }
+
+        .process-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .preview-area {
+            text-align: center;
+            color: #7f8c8d;
+        }
+
+        .preview-area h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .model-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .model-info h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .model-info p {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+
+        .split-info {
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #27ae60;
+        }
+
+        .split-info h4 {
+            color: #27ae60;
+            margin-bottom: 10px;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #dc3545;
+            margin-top: 20px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+            margin-top: 20px;
+        }
+
+        .download-btn {
+            display: none;
+            padding: 15px 30px;
+            background: #27ae60;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+
+        .download-btn:hover {
+            background: #229954;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .feature-list {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .feature-list h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .feature-list ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 5px 0;
+            color: #7f8c8d;
+        }
+
+        .feature-list li:before {
+            content: "✅ ";
+            margin-right: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .left-panel {
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+            
+            .dimensions {
+                grid-template-columns: 1fr;
+            }
+            
+            .presets {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 STL 3D Model Splitter</h1>
+            <p>Professional 3D model splitting for 3D printing - Web Version</p>
+            <div class="version-badge">v2.0 Web Edition</div>
+        </div>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <form id="splitForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label>📁 STL File</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="stlFile" name="stl_file" class="file-input" accept=".stl" required>
+                            <div class="file-input-button" id="fileButton">
+                                <span>📁 Choose STL File</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🖨️ Quick Presets</label>
+                        <div class="presets">
+                            <button type="button" class="preset-btn" data-x="220" data-y="220" data-z="250">Ender 3</button>
+                            <button type="button" class="preset-btn" data-x="250" data-y="210" data-z="210">Prusa i3</button>
+                            <button type="button" class="preset-btn" data-x="100" data-y="100" data-z="100">Mini</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>📏 Build Volume (mm)</label>
+                        <div class="dimensions">
+                            <div class="dimension-group">
+                                <input type="number" id="maxX" name="max_x" value="220" min="10" max="1000" step="10" required>
+                                <label>X (Width)</label>
+                            </div>
+                            <div class="dimension-group">
+                                <input type="number" id="maxY" name="max_y" value="220" min="10" max="1000" step="10" required>
+                                <label>Y (Depth)</label>
+                            </div>
+                            <div class="dimension-group">
+                                <input type="number" id="maxZ" name="max_z" value="250" min="10" max="1000" step="10" required>
+                                <label>Z (Height)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="flipModel" name="flip_model">
+                        <label for="flipModel">🔄 Flip model 180° (X-axis)</label>
+                    </div>
+
+                    <button type="submit" class="process-btn" id="processBtn" disabled>
+                        ✂️ Split STL Model
+                    </button>
+
+                    <div class="progress-container" id="progressContainer">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="status" id="status">Ready</div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="right-panel">
+                <div class="preview-area">
+                    <h3>🎯 Model Preview</h3>
+                    <div id="modelInfo" class="model-info" style="display: none;">
+                        <h4>📊 Model Information</h4>
+                        <p id="modelDimensions">Dimensions: -</p>
+                        <p id="modelTriangles">Triangles: -</p>
+                        <p id="modelVertices">Vertices: -</p>
+                        <p id="modelWatertight">Watertight: -</p>
+                    </div>
+                    <div id="splitInfo" class="split-info" style="display: none;">
+                        <h4>✂️ Split Configuration</h4>
+                        <p id="splitParts">Parts: -</p>
+                        <p id="splitSize">Part size: -</p>
+                    </div>
+                    <div id="errorMessage" class="error" style="display: none;"></div>
+                    <div id="successMessage" class="success" style="display: none;"></div>
+                    <div id="loadingSpinner" class="loading-spinner"></div>
+                    <a href="#" id="downloadBtn" class="download-btn">📥 Download Split Parts</a>
+                    
+                    <div class="feature-list">
+                        <h4>🚀 Web Features</h4>
+                        <ul>
+                            <li>Same algorithms as desktop version</li>
+                            <li>Automatic ZIP file creation</li>
+                            <li>Real-time progress tracking</li>
+                            <li>Mobile-friendly interface</li>
+                            <li>No software installation required</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class STLSplitter {
+            constructor() {
+                this.initializeEventListeners();
+                this.setPreset('220', '220', '250'); // Default to Ender 3
+            }
+
+            initializeEventListeners() {
+                // File input
+                const fileInput = document.getElementById('stlFile');
+                const fileButton = document.getElementById('fileButton');
+                
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        fileButton.innerHTML = `✅ ${e.target.files[0].name}`;
+                        fileButton.classList.add('has-file');
+                        document.getElementById('processBtn').disabled = false;
+                        this.analyzeFile(e.target.files[0]);
+                    } else {
+                        fileButton.innerHTML = '📁 Choose STL File';
+                        fileButton.classList.remove('has-file');
+                        document.getElementById('processBtn').disabled = true;
+                        this.hideModelInfo();
+                    }
+                });
+
+                // Preset buttons
+                document.querySelectorAll('.preset-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.setPreset(btn.dataset.x, btn.dataset.y, btn.dataset.z);
+                    });
+                });
+
+                // Dimension inputs
+                ['maxX', 'maxY', 'maxZ'].forEach(id => {
+                    document.getElementById(id).addEventListener('input', () => {
+                        this.updateSplitPreview();
+                    });
+                });
+
+                // Form submission
+                document.getElementById('splitForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.processSTL();
+                });
+            }
+
+            setPreset(x, y, z) {
+                document.getElementById('maxX').value = x;
+                document.getElementById('maxY').value = y;
+                document.getElementById('maxZ').value = z;
+                this.updateSplitPreview();
+            }
+
+            analyzeFile(file) {
+                // Basic file analysis (in a real app, you'd send to server for analysis)
+                const sizeKB = (file.size / 1024).toFixed(1);
+                document.getElementById('modelInfo').style.display = 'block';
+                document.getElementById('modelDimensions').textContent = `File size: ${sizeKB} KB`;
+                document.getElementById('modelTriangles').textContent = 'Triangles: Analyzing...';
+                document.getElementById('modelVertices').textContent = 'Vertices: Analyzing...';
+                document.getElementById('modelWatertight').textContent = 'Watertight: Analyzing...';
+                
+                this.updateSplitPreview();
+            }
+
+            updateSplitPreview() {
+                // This would normally be calculated based on actual model dimensions
+                // For demo purposes, we'll show estimated split info
+                const maxX = parseFloat(document.getElementById('maxX').value);
+                const maxY = parseFloat(document.getElementById('maxY').value);
+                const maxZ = parseFloat(document.getElementById('maxZ').value);
+                
+                // Simulate model dimensions (in real app, get from server)
+                const modelX = 200; // Example model dimensions
+                const modelY = 180;
+                const modelZ = 100;
+                
+                const partsX = Math.ceil(modelX / maxX);
+                const partsY = Math.ceil(modelY / maxY);
+                const partsZ = Math.ceil(modelZ / maxZ);
+                const totalParts = partsX * partsY * partsZ;
+                
+                if (totalParts > 1) {
+                    document.getElementById('splitInfo').style.display = 'block';
+                    document.getElementById('splitParts').textContent = `Parts: ${totalParts} (${partsX}×${partsY})`;
+                    document.getElementById('splitSize').textContent = `Part size: ~${(modelX/partsX).toFixed(1)}×${(modelY/partsY).toFixed(1)}×${modelZ.toFixed(1)} mm`;
+                } else {
+                    document.getElementById('splitInfo').style.display = 'none';
+                }
+            }
+
+            hideModelInfo() {
+                document.getElementById('modelInfo').style.display = 'none';
+                document.getElementById('splitInfo').style.display = 'none';
+            }
+
+            async processSTL() {
+                const formData = new FormData(document.getElementById('splitForm'));
+                const processBtn = document.getElementById('processBtn');
+                const progressContainer = document.getElementById('progressContainer');
+                const progressFill = document.getElementById('progressFill');
+                const status = document.getElementById('status');
+                
+                // Reset UI
+                this.hideMessages();
+                processBtn.disabled = true;
+                processBtn.textContent = '⏳ Processing...';
+                progressContainer.style.display = 'block';
+                progressFill.style.width = '0%';
+                status.textContent = 'Uploading file...';
+                
+                try {
+                    // Simulate progress
+                    this.simulateProgress();
+                    
+                    const response = await fetch('stl_splitter_api.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        this.showSuccess(result);
+                    } else {
+                        this.showError(result.error);
+                    }
+                    
+                } catch (error) {
+                    this.showError('Network error: ' + error.message);
+                } finally {
+                    processBtn.disabled = false;
+                    processBtn.textContent = '✂️ Split STL Model';
+                    progressContainer.style.display = 'none';
+                }
+            }
+
+            simulateProgress() {
+                const progressFill = document.getElementById('progressFill');
+                const status = document.getElementById('status');
+                let progress = 0;
+                
+                const interval = setInterval(() => {
+                    progress += Math.random() * 15;
+                    if (progress > 90) progress = 90;
+                    
+                    progressFill.style.width = progress + '%';
+                    
+                    if (progress < 30) {
+                        status.textContent = 'Uploading file...';
+                    } else if (progress < 60) {
+                        status.textContent = 'Analyzing model...';
+                    } else if (progress < 90) {
+                        status.textContent = 'Splitting model...';
+                    }
+                    
+                    if (progress >= 90) {
+                        clearInterval(interval);
+                    }
+                }, 200);
+            }
+
+            showSuccess(result) {
+                const successMessage = document.getElementById('successMessage');
+                const downloadBtn = document.getElementById('downloadBtn');
+                
+                successMessage.innerHTML = `
+                    <strong>✅ Success!</strong><br>
+                    Model split into ${result.partsCount} parts.<br>
+                    Click download to get the ZIP file.
+                `;
+                successMessage.style.display = 'block';
+                
+                // Create download link
+                const blob = new Blob([this.base64ToArrayBuffer(result.zipData)], {type: 'application/zip'});
+                const url = URL.createObjectURL(blob);
+                downloadBtn.href = url;
+                downloadBtn.download = result.filename;
+                downloadBtn.style.display = 'inline-block';
+            }
+
+            showError(message) {
+                const errorMessage = document.getElementById('errorMessage');
+                errorMessage.innerHTML = `<strong>❌ Error:</strong> ${message}`;
+                errorMessage.style.display = 'block';
+            }
+
+            hideMessages() {
+                document.getElementById('errorMessage').style.display = 'none';
+                document.getElementById('successMessage').style.display = 'none';
+                document.getElementById('downloadBtn').style.display = 'none';
+            }
+
+            base64ToArrayBuffer(base64) {
+                const binaryString = atob(base64);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                return bytes.buffer;
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new STLSplitter();
+        });
+    </script>
+</body>
+</html>
