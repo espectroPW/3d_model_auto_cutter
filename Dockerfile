@@ -42,6 +42,23 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libxrender-dev \
     libgomp1 \
+    libglu1-mesa-dev \
+    libgl1-mesa-dev \
+    libx11-dev \
+    libxext-dev \
+    libxrender-dev \
+    libxi-dev \
+    libxrandr-dev \
+    libxss-dev \
+    libgconf-2-4 \
+    libxtst6 \
+    libxrandr2 \
+    libasound2 \
+    libpangocairo-1.0-0 \
+    libatk1.0-0 \
+    libcairo-gobject2 \
+    libgtk-3-0 \
+    libgdk-pixbuf2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
@@ -51,7 +68,14 @@ RUN docker-php-ext-install zip
 RUN pip3 install --no-cache-dir --break-system-packages \
     trimesh \
     numpy \
-    matplotlib
+    matplotlib \
+    scipy \
+    shapely \
+    pyglet \
+    pillow \
+    networkx \
+    rtree \
+    pyembree
 
 # Set up Apache
 RUN a2enmod rewrite
