@@ -45,6 +45,8 @@ Professional 3D model splitting application for 3D printing. Automatically cuts 
 
 ## 🛠️ Installation
 
+### 🖥️ Desktop Application
+
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/yourusername/3d-model-auto-cutter.git
@@ -61,6 +63,41 @@ Professional 3D model splitting application for 3D printing. Automatically cuts 
    ```bash
    python cutter.py
    ```
+
+### 🌐 Web Application (Docker)
+
+**Quick Start:**
+```bash
+# Clone repository
+git clone https://github.com/yourusername/3d-model-auto-cutter.git
+cd 3d-model-auto-cutter
+
+# Build and run with Docker
+docker-compose up --build -d
+
+# Access at http://localhost:8080
+```
+
+**Change Port:**
+Edit `docker-compose.yml` and change the port mapping:
+```yaml
+ports:
+  - "3000:80"  # Change 8080 to your preferred port
+```
+
+**Popular port options:**
+- `"80:80"` - Standard HTTP
+- `"3000:80"` - Development port
+- `"5000:80"` - Alternative dev port
+- `"8000:80"` - Django-style port
+
+**After changing port:**
+```bash
+docker-compose down
+docker-compose up --build -d
+```
+
+**Access:** http://localhost:[YOUR_PORT]
 
 ## 🎮 How to Use
 
