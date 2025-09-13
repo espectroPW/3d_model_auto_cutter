@@ -254,8 +254,12 @@ def main():
     if not processor.load_stl(args.stl_file, args.flip_model == 'true'):
         sys.exit(1)
     
+    # Create output directory in the same directory as the STL file
+    stl_dir = os.path.dirname(args.stl_file)
+    output_dir = os.path.join(stl_dir, 'parts')
+    
     # Split model
-    if not processor.split_model(args.max_x, args.max_y, args.max_z, args.output_dir):
+    if not processor.split_model(args.max_x, args.max_y, args.max_z, output_dir):
         sys.exit(1)
     
     print("STL processing completed successfully")

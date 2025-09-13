@@ -78,10 +78,13 @@ class STLSplitter {
                 throw new Exception('Python processing failed');
             }
             
+            // Debug: Log Python output
+            error_log("Python output: " . $output);
+            
             // Check if parts were created
             $partsDir = $this->tempDir . '/parts';
             if (!is_dir($partsDir)) {
-                throw new Exception('No parts directory created');
+                throw new Exception('No parts directory created. Python output: ' . $output);
             }
             
             $parts = glob($partsDir . '/*.stl');
